@@ -16,4 +16,7 @@ pub enum InitProcessError {
 
     #[error("タスクの実行処理に失敗しました: {0}")]
     TaskExecutionProcessError(String),
+
+    #[error("時間範囲の入力に失敗しました: {0}")]
+    InvalidDateInput(String),
 }
