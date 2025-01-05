@@ -1,6 +1,6 @@
 use crate::packet::reader::error::PacketReaderError;
 use chrono::{DateTime, Utc};
-use log::{error, info, trace};
+use log::{error, info};
 use pnet::datalink::Channel::Ethernet;
 use pnet::datalink::{self, NetworkInterface};
 use std::time::Duration;

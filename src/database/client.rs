@@ -29,25 +29,6 @@ impl Database {
         })
     }
 
-    pub async fn transaction<F, T>(&self, f: F) -> Result<T, DatabaseError>
-    where
-        F: for<'a> FnOnce(&'a mut tokio_postgres::Transaction<'_>) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, DatabaseError>> + Send + 'a>>,
-    {
-        let pool = DatabasePool::get_pool()?;
-        let mut client = pool.inner().get().await.map_err(|e| DatabaseError::ConnectionError(e.to_string()))?;
-        let mut tx = client.transaction().await.map_err(|e| DatabaseError::TransactionError(e.to_string()))?;
-
-        match f(&mut tx).await {
-            Ok(result) => {
-                tx.commit().await.map_err(|e| DatabaseError::TransactionError(e.to_string()))?;
-                Ok(result)
-            },
-            Err(e) => {
-                tx.rollback().await.map_err(|e| DatabaseError::TransactionError(e.to_string()))?;
-                Err(e)
-            },
-        }
-    }
 }
 
 #[async_trait]
