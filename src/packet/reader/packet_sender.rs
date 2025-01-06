@@ -41,7 +41,8 @@ impl PacketSender {
             match tx.send_to(raw_packet, None) {
                 Some(Ok(_)) => {
                     info!(
-                        "送信したパケット: {packet_size}bytes, timestamp = {timestamp}",
+                        "{index}> 送信したパケット: {packet_size}bytes, timestamp = {timestamp}",
+                        index = i + 1,
                         packet_size = raw_packet.len(),
                         timestamp = timestamp.format("%Y-%m-%d %H:%M:%S.%f").to_string()
                     );
