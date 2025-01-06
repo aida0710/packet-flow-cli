@@ -28,7 +28,6 @@ impl Database {
             prepared_statements: HashMap::new(),
         })
     }
-
 }
 
 #[async_trait]
