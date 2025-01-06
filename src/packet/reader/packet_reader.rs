@@ -1,40 +1,28 @@
-use crate::config::AppConfig;
 use crate::packet::reader::error::PacketReaderError;
 use crate::packet::reader::packet_sender::PacketSender;
 use crate::packet::repository::PacketRepository;
-use futures::future::join_all;
-use log::error;
+use chrono::{DateTime, Utc};
+use log::{error, info};
 use pnet::datalink::NetworkInterface;
-use std::time::Duration;
 
-#[derive(Clone)]
-pub struct PacketReader {}
+pub struct PacketReader;
 
 impl PacketReader {
-    pub async fn start(interface: NetworkInterface) -> Result<(), PacketReaderError> {
-        let config: AppConfig = AppConfig::new().map_err(|e| PacketReaderError::ConfigurationError(e.to_string()))?;
+    pub async fn replay_packets(interface: NetworkInterface, start_time: DateTime<Utc>, end_time: DateTime<Utc>) -> Result<(), PacketReaderError> {
+        info!("パケット再生を開始します");
+        info!("期間: {} から {}", start_time, end_time);
 
-        loop {
-            match PacketRepository::get_filtered_packets(config.node_id, false, None).await {
-                Ok(packets) => {
-                    let sends = packets.into_iter().map(|raw_packet| {
-                        let interface_clone = interface.clone();
-                        tokio::spawn(async move {
-                            if let Err(e) = PacketSender::send_packet(&interface_clone, raw_packet).await {
-                                error!("パケットの送信に失敗しました: {:?}", e);
-                            }
-                        })
-                    });
-
-                    join_all(sends).await;
-                    tokio::time::sleep(Duration::from_millis(10)).await;
-                },
-                Err(e) => {
-                    error!("パケットの取得に失敗しました: {:?}", e);
-                    tokio::time::sleep(Duration::from_secs(5)).await;
-                    continue;
-                },
-            }
+        match PacketRepository::get_packets_in_timerange(start_time, end_time).await {
+            Ok(packets) => {
+                info!("{}個のパケットを取得しました", packets.len());
+                PacketSender::send_packets_with_timing(&interface, packets).await?;
+                info!("パケット再生が完了しました");
+                Ok(())
+            },
+            Err(e) => {
+                error!("パケットの取得に失敗しました: {:?}", e);
+                Err(PacketReaderError::ConfigurationError(e.to_string()))
+            },
         }
     }
 }
